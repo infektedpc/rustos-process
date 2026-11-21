@@ -1,0 +1,13 @@
+[package]
+name = "rustos-process"
+version = "0.1.0"
+edition = "2021"
+description = "RustOS process management: PCB, process table, round-robin scheduler, ELF64 loader, per-process address spaces, and the syscall dispatch table."
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "rustos_process"
+path = "src/lib.rs"
+
+[profile.dev]
+panic = "abort"
