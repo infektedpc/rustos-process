@@ -13,6 +13,7 @@
 //! | 57     | spawn  | `spawn(path, ...)` |
 //! | 60     | exit   | `exit(code)` — never returns |
 //! | 61     | wait   | `wait(pid)` |
+//! | 1000   | uptime | `uptime()` -> ms since boot (RustOS-private) |
 //!
 //! (39 = Linux's `getpid`, 57 = Linux's `fork` slot reused here for
 //! `spawn` — RustOS has no `fork` (no COW yet), so `spawn` takes the
@@ -44,6 +45,13 @@ pub const SYS_EXIT: u64 = 60;
 /// wait(pid) -> exit code, or negative errno; blocks if not exited.
 pub const SYS_WAIT: u64 = 61;
 
+/// uptime() -> milliseconds since boot (PIT ticks * 10 at 100 Hz).
+/// RustOS-private number: the low numbers are Linux's, and Linux has
+/// no uptime syscall (`sysinfo` is 99 and returns a struct), so the
+/// RustOS-private range starts at 1000 and uptime takes the first
+/// slot. Added in Batch 9 for the userspace shell's `uptime` builtin.
+pub const SYS_UPTIME: u64 = 1000;
+
 /// Standard file descriptors.
 pub const FD_STDIN: u64 = 0;
 pub const FD_STDOUT: u64 = 1;
@@ -67,6 +75,7 @@ pub fn syscall_name(n: u64) -> &'static str {
         SYS_SPAWN => "spawn",
         SYS_EXIT => "exit",
         SYS_WAIT => "wait",
+        SYS_UPTIME => "uptime",
         _ => "unknown",
     }
 }
@@ -82,6 +91,7 @@ pub const ALL_SYSCALLS: &[(u64, &str)] = &[
     (SYS_SPAWN, "spawn"),
     (SYS_EXIT, "exit"),
     (SYS_WAIT, "wait"),
+    (SYS_UPTIME, "uptime"),
 ];
 
 /// What a syscall did. `Returned` carries the value that goes in
@@ -222,7 +232,9 @@ mod tests {
         assert_eq!(SYS_GETPID, 39);
         assert_eq!(SYS_SPAWN, 57);
         assert_eq!(SYS_WAIT, 61);
-        assert_eq!(ALL_SYSCALLS.len(), 9);
+        // RustOS-private range: uptime is the first slot (1000).
+        assert_eq!(SYS_UPTIME, 1000);
+        assert_eq!(ALL_SYSCALLS.len(), 10);
         // ALL_SYSCALLS is in number order and matches syscall_name.
         let mut prev = 0u64;
         for (i, (n, name)) in ALL_SYSCALLS.iter().enumerate() {
